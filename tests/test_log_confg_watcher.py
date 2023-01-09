@@ -1,5 +1,5 @@
-from log_confg_watcher import __version__
+from log_config_watcher import __version__
 
 
 def test_version():
-    assert __version__ == '0.1.0'
+    assert __version__ == '0.1.2'
