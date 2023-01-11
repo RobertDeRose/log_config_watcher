@@ -23,3 +23,16 @@ to the constructor.
 * default_level: int - A Python logging logging level, such as, DEBUG, INFO, WARNIGN, or ERROR
 * default_format: str - A Python logging format string
 * default_handler: logging.Handler - A Python logging Handler type, such as, StreamHandler, FileHandler, etc, etc
+
+## Development
+
+This project uses [Poetry](https://python-poetry.org/) as its project manager.
+The goal of this library is to have no external runtime dependencies.
+However, for development, the following are used:
+
+* Black - For Formatting the code base
+* iSort - For sorting imports
+* autoflake - For removing unused imports and variables
+* poetry-bumpversion - For keeping the project and internal `__version__` value in sync
+
+If you make a PR, you must run the `format.sh` script or your PR will be rejected.

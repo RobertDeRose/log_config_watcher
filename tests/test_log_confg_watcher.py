@@ -1,5 +1,10 @@
+import configparser
+
 from log_config_watcher import __version__
 
 
 def test_version():
-    assert __version__ == '0.1.2'
+    parser = configparser.ConfigParser()
+    parser.read("pyproject.toml")
+    version = parser["tool.poetry"]["version"].strip('"')
+    assert __version__ == version
