@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "log_config_watcher"
-version = "0.1.2"
+version = "0.1.3"
 description = "Watches your logging configuration file for change and applies them without requiring an application restart"
 homepage = "https://github.com/RobertDeRose/log_config_watcher"
 documentation = "https://github.com/RobertDeRose/log_config_watcher/blob/main/README"
