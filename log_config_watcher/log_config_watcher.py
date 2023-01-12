@@ -42,6 +42,7 @@ class LogConfigWatcher(Thread):
 
         self._running = True
         self._previous_config = ""
+        self._missing_count = -1
 
         # Ensure at least a basic logger is ready
         logging.basicConfig(level=default_level, format=default_format, handlers=[default_handler])
@@ -74,7 +75,9 @@ class LogConfigWatcher(Thread):
 
                 return config_dict
         except FileNotFoundError:
-            self.log.error("The logging configuration file %s is missing", self.config_file)
+            self._missing_count += 1
+            if self._missing_count % 4 == 0:
+                self.log.error("The logging configuration file %s is missing", self.config_file)
         except JSONDecodeError:
             self.log.exception("The logging config has a syntax error")
         except Exception:
