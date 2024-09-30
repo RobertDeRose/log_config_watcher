@@ -1,0 +1,55 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.6.8
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args:
+          - --fix
+          - --config
+          - pyproject.toml
+          - --select
+          - I,F401
+      # Run the formatter.
+      - id: ruff-format
+        args:
+          - --config
+          - pyproject.toml
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        args:
+         - -w
+  - repo: https://codeberg.org/frnmst/md-toc
+    rev: '9.0.0'
+    hooks:
+      - id: md-toc
+        args: ['-p', 'github', '-l6']
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.42.0
+    hooks:
+      - id: markdownlint
+        args:
+          - -c
+          - pyproject.toml
+          - --configPointer
+          - /tool/markdownlint
+          - --fix
+  - repo: https://github.com/netromdk/vermin
+    rev: v1.6.0
+    hooks:
+      - id: vermin
+        # specify your target version here, OR in a Vermin config file as usual:
+        args: ['-t=3.5-', '--violations']
