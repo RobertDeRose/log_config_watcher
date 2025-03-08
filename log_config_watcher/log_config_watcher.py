@@ -18,6 +18,7 @@ class LogConfigWatcher(Thread):
         default_level=logging.DEBUG,
         default_handler=logging.StreamHandler(),
         warn_only_once=False,
+        logger_name=None,
     ):
         """A Runnable thread that will monitor your logging configuration file for changes and apply them.
 
@@ -39,7 +40,7 @@ class LogConfigWatcher(Thread):
         """
         super().__init__(name="LogWatcher-{}".format(self.__COUNTER()), daemon=True)
 
-        self.log = logging.getLogger(__name__)
+        self.log = logging.getLogger(logger_name or __name__)
         self.config_file = Path(config_file)
         self.interval = interval
         self.warn_only_once = warn_only_once

@@ -37,7 +37,7 @@ jobs:
 
     - name: Install Poetry
       run: |
-        pipx install poetry==1.1.5
+        pipx install poetry
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
