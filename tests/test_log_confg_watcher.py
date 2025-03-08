@@ -190,16 +190,11 @@ def test_check_modification_time(mock_config_file):
 
 
 @pytest.mark.parametrize(
-    "interval,default_format,default_level,default_handler,warn_only_once",
+    "interval,default_format,default_level,default_handler,warn_only_once,logger_name",
     [
-        (60, "%(message)s", logging.INFO, logging.FileHandler("test.log"), False),
-        (
-            10,
-            "%(levelname)s: %(message)s",
-            logging.WARNING,
-            logging.NullHandler(),
-            True,
-        ),
+        (60, "%(message)s", logging.INFO, logging.FileHandler("test.log"), False, None),
+        (10, "%(levelname)s: %(message)s", logging.WARNING, logging.NullHandler(), True, None),
+        (60, "%(message)s", logging.INFO, logging.FileHandler("test.log"), False, "test_watcher"),
     ],
 )
 def test_custom_init_parameters(
@@ -209,6 +204,7 @@ def test_custom_init_parameters(
     default_level,
     default_handler,
     warn_only_once,
+    logger_name,
 ):
     with patch("logging.basicConfig") as mock_basic_config:
         watcher = LogConfigWatcher(
@@ -218,10 +214,15 @@ def test_custom_init_parameters(
             default_level=default_level,
             default_handler=default_handler,
             warn_only_once=warn_only_once,
+            logger_name=logger_name,
         )
 
         assert watcher.interval == interval
         assert watcher.warn_only_once == warn_only_once
+        if logger_name is None:
+            assert watcher.log.name == "log_config_watcher.log_config_watcher"
+        else:
+            assert watcher.log.name == logger_name
         mock_basic_config.assert_called_once_with(
             level=default_level, format=default_format, handlers=[default_handler]
         )
