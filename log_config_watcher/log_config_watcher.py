@@ -7,6 +7,12 @@ from threading import Thread
 from time import sleep
 
 
+try:
+    import asyncio
+except ImportError:
+    asyncio = None
+
+
 class LogConfigWatcher(Thread):
     __COUNTER = count(1).__next__
 
@@ -38,9 +44,11 @@ class LogConfigWatcher(Thread):
         log_wathcer.start()
         ```
         """
-        super().__init__(name="LogWatcher-{}".format(self.__COUNTER()), daemon=True)
+        _count = self.__COUNTER()
+        self._name = "LogWatcher" if _count == 1 else "LogWatcher-{}".format(_count)
+        super().__init__(name=self._name, daemon=True)
 
-        self.log = logging.getLogger(logger_name or __name__)
+        self.log = logging.getLogger(logger_name or "LogWatcher")
         self.config_file = Path(config_file)
         self.interval = interval
         self.warn_only_once = warn_only_once
@@ -54,16 +62,34 @@ class LogConfigWatcher(Thread):
         self._last_inode = 0
         self._warned = False
 
-        # Ensure at least a basic logger is ready
-        logging.basicConfig(level=default_level, format=default_format, handlers=[default_handler])
+        logging.basicConfig(level=logging.ERROR, format=default_format, handlers=[default_handler])
+        if asyncio is None:
+            self.log.error("Asyncio is not available in your environment, async methods will fail")
 
-        self._update()
+        if not self._update():
+            # Ensure at least a basic logger is ready if the configure fails
+            logging.basicConfig(level=default_level, format=default_format, handlers=[default_handler])
 
     def run(self):
         while self._running:
             if self._check_modification_time():
                 self._update()
             sleep(self.interval)
+
+    async def async_run(self):
+        loop = asyncio.get_event_loop()
+        while self._running:
+            if await loop.run_in_executor(self._check_modification_time):
+                await loop.run_in_executor(self._update)
+            asyncio.sleep(self.interval)
+
+    def start_async(self):
+        self.log("Running %s as an asyncio task")
+        asyncio.ensure_future(self.async_run())
+
+    def start(self):
+        self.log.info("Running %s in a thread", self._name)
+        super().start()
 
     def stop(self):
         self._running = False
@@ -72,7 +98,9 @@ class LogConfigWatcher(Thread):
         new_config = self._read_config()
 
         if new_config:
-            self._apply_config(new_config)
+            return self._apply_config(new_config)
+
+        return False
 
     def _check_modification_time(self):
         try:
@@ -105,8 +133,9 @@ class LogConfigWatcher(Thread):
 
             if new_config != self._previous_config:
                 config_dict = loads(new_config)
+                if self._previous_config is not None:
+                    self.log.info("Logging configuration change detected")
                 self._previous_config = new_config
-                self.log.info("Logging configuration change detected")
 
                 return config_dict
         except FileNotFoundError:
@@ -131,6 +160,10 @@ class LogConfigWatcher(Thread):
     def _apply_config(self, new_config):
         try:
             logging.config.dictConfig(new_config)
-            self.log.info("Applied new logging configuration")
+            if self._last_file_size != 0:
+                self.log.info("Applied new logging configuration")
         except Exception:
             self.log.exception("Logging configuration file contains errors")
+            return False
+
+        return True
