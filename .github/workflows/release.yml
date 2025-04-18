@@ -11,11 +11,21 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      pr-number: ${{ steps.bump_version.outputs.pr-number || steps.create-pr.outputs.pr-number }}
       pr-created: ${{ steps.create-pr.outcome == 'success' }}
-      pr-number: ${{ steps.update_version.outputs.pr-number || steps.create-pr.outputs.pr-number }}
-      version: ${{ steps.update_version.outputs.version }}
 
     steps:
+      - name: Get Version
+        id: get_version
+        run: |
+          if ! [[ "${GITHUB_REF_NAME}" =~ ^release/v?([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "Release branch name does not contain a valid SemVer"
+            exit 1
+          fi
+
+          echo version="${VERSION}" >> "${GITHUB_OUTPUT}"
+
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -26,20 +36,14 @@ jobs:
           pipx install poetry
           poetry self add poetry-bumpversion
 
-      - name: Ensure version matches release
-        id: update_version
+      - name: Bump Version
+        id: bump_version
         env:
-          ref: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if ! [[ "${ref}" =~ ^release/v?([0-9]+\.[0-9]+\.[0-9]+) ]]; then
-            echo "Release branch name does not contain a valid SemVer"
-            exit 1
-          fi
-
-          VERSION="${BASH_REMATCH[1]}"
-          echo VERSION="${VERSION}" >> "${GITHUB_ENV}"
-          echo version="${VERSION}" >> "${GITHUB_OUTPUT}"
-          echo "pr-number=$(gh pr list --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')"
+          {
+            echo "pr-number=$(gh pr list --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')"
+          } >> "${GITHUB_OUTPUT}"
 
           poetry version "${VERSION}"
 
@@ -56,7 +60,7 @@ jobs:
           fi
 
       - name: Create Pull Request
-        if: ${{ steps.update_version.outputs.pr-number == '' }}
+        if: ${{ steps.bump_version.outputs.pr-number == '' }}
         id: create-pr
         env:
           GH_TOKEN: ${{ github.token }}
