@@ -53,3 +53,8 @@ repos:
       - id: vermin
         # specify your target version here, OR in a Vermin config file as usual:
         args: ['-t=3.5-', '--violations']
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.33.0
+    hooks:
+      - id: check-github-workflows
+        args: ["--verbose"]
