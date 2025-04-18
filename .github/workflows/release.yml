@@ -1,0 +1,75 @@
+name: Create Release Candidate PR
+
+on:
+  push:
+    branches:
+      - 'release/[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  create-release-pr:
+    if: github.ref_type == 'branch' && startsWith(github.ref_name, 'release/')
+    runs-on: ubuntu-latest
+
+    outputs:
+      pr-created: ${{ steps.create-pr.outcome == 'success' }}
+      pr-number: ${{ steps.update_version.outputs.pr-number || steps.create-pr.outputs.pr-number }}
+      version: ${{ steps.update_version.outputs.version }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Install Poetry
+        run: |
+          pipx install poetry
+          poetry self add poetry-bumpversion
+
+      - name: Ensure version matches release
+        id: update_version
+        env:
+          ref: ${{ github.ref_name }}
+        run: |
+          if ! [[ "${ref}" =~ ^release/v?([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "Release branch name does not contain a valid SemVer"
+            exit 1
+          fi
+
+          VERSION="${BASH_REMATCH[1]}"
+          echo VERSION="${VERSION}" >> "${GITHUB_ENV}"
+          echo version="${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "pr-number=$(gh pr list --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')"
+
+          poetry version "${VERSION}"
+
+          if ! git diff --quiet; then
+            echo "Committing updated version"
+
+            git config user.name "GitHub Actions"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            git add -u
+
+            git commit -F <(printf 'Bump version to %s\n' "${VERSION%-*}")
+            git push origin "${GITHUB_REF_NAME}"
+          fi
+
+      - name: Create Pull Request
+        if: ${{ steps.update_version.outputs.pr-number == '' }}
+        id: create-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: main
+        run: |
+          # Creating Pull Request for ${{ github.ref_name }}
+
+          PR_URL=$(gh pr create \
+            --base "${BRANCH}" \
+            --title "Release v${VERSION%-*}" \
+            --body "Release ${VERSION%-*} was requested by ${GITHUB_ACTOR}" \
+            --assignee "${GITHUB_ACTOR}" \
+          )
+
+          # Extract the PR number from the URL
+          echo "pr-number=$(echo "${PR_URL}" | grep -Po '(?<=/pull/)\d+')" | tee -a "${GITHUB_OUTPUT}"
