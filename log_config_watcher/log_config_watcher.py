@@ -31,6 +31,7 @@ class LogConfigWatcher(Thread):
             default_level {_type_} -- The logging level to use before a configuration file is loaded or if it fails to load (default: {logging.DEBUG})
             default_handler {_type_} -- The logging handler to use before a configuration file is loaded or if it fails to load (default: {logging.StreamHandler()})
             warn_only_once {bool} -- If true, only warn once if the configuration file is missing (default: {False})
+            logger_name {str} -- If set, this is the name of the logger LogConfigWatcher uses when calling getLogger
 
         Example:
         ```
@@ -68,7 +69,7 @@ class LogConfigWatcher(Thread):
             sleep(self.interval)
 
     def start(self):
-        self.log.info("Starting %s  thread", self._name)
+        self.log.info("Starting %s thread", self._name)
         super().start()
 
     def stop(self):

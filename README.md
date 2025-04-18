@@ -23,6 +23,7 @@ to the constructor.
 * default_level: int - A Python logging logging level, such as, DEBUG, INFO, WARNING, or ERROR
 * default_format: str - A Python logging format string
 * default_handler: logging.Handler - A Python logging Handler type, such as, StreamHandler, FileHandler, etc, etc
+* logger_name: str - defaults to `LogWatcher` when calling `getLogger`. Setting this allows you to use a custom logger
 
 ## Development
 
