@@ -1,7 +1,7 @@
-from itertools import count
-from json import JSONDecodeError, loads
 import logging
 import logging.config
+from itertools import count
+from json import JSONDecodeError, loads
 from pathlib import Path
 from threading import Thread
 from time import sleep
@@ -38,15 +38,17 @@ class LogConfigWatcher(Thread):
         log_wathcer.start()
         ```
         """
-        super().__init__(name="LogWatcher-{}".format(self.__COUNTER()), daemon=True)
+        _count = self.__COUNTER()
+        self._name = "LogWatcher" if _count == 1 else "LogWatcher-{}".format(_count)
+        super().__init__(name=self._name, daemon=True)
 
-        self.log = logging.getLogger(logger_name or __name__)
+        self.log = logging.getLogger(logger_name or "LogWatcher")
         self.config_file = Path(config_file)
         self.interval = interval
         self.warn_only_once = warn_only_once
 
         self._running = True
-        self._previous_config = ""
+        self._previous_config = {}
         self._missing_count = -1  # we start at -1 because we want the first miss to log but then only ever 4th time
         self._last_file_size = 0
         self._last_mtime = 0
@@ -54,25 +56,33 @@ class LogConfigWatcher(Thread):
         self._last_inode = 0
         self._warned = False
 
-        # Ensure at least a basic logger is ready
-        logging.basicConfig(level=default_level, format=default_format, handlers=[default_handler])
+        logging.basicConfig(level=logging.ERROR, format=default_format, handlers=[default_handler])
 
-        self._update()
+        if not self._update():
+            # Ensure at least a basic logger is ready if the configure fails
+            logging.basicConfig(level=default_level, format=default_format, handlers=[default_handler])
 
     def run(self):
         while self._running:
-            if self._check_modification_time():
-                self._update()
+            self._update()
             sleep(self.interval)
+
+    def start(self):
+        self.log.info("Starting %s  thread", self._name)
+        super().start()
 
     def stop(self):
         self._running = False
 
     def _update(self):
-        new_config = self._read_config()
+        new_config = None
+        if self._check_modification_time():
+            new_config = self._read_config()
 
         if new_config:
-            self._apply_config(new_config)
+            return self._apply_config(new_config)
+
+        return False
 
     def _check_modification_time(self):
         try:
@@ -101,14 +111,12 @@ class LogConfigWatcher(Thread):
     def _read_config(self):
         try:
             with self.config_file.open("r") as config_file:
-                new_config = config_file.read()
+                new_config = loads(config_file.read())
+                self._missing_count = -1
+                self._warned = False
 
             if new_config != self._previous_config:
-                config_dict = loads(new_config)
-                self._previous_config = new_config
-                self.log.info("Logging configuration change detected")
-
-                return config_dict
+                return new_config
         except FileNotFoundError:
             if self.warn_only_once and self._warned:
                 return None
@@ -130,7 +138,14 @@ class LogConfigWatcher(Thread):
 
     def _apply_config(self, new_config):
         try:
+            if self._previous_config:
+                self.log.info("Logging configuration change detected")
             logging.config.dictConfig(new_config)
-            self.log.info("Applied new logging configuration")
+            if self._previous_config:
+                self.log.info("Applied new logging configuration")
+            self._previous_config = new_config
         except Exception:
             self.log.exception("Logging configuration file contains errors")
+            return False
+
+        return True
