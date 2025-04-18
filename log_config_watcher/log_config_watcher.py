@@ -127,7 +127,9 @@ class LogConfigWatcher(Thread):
                 self._warned = True
                 self._missing_count = 0
         except JSONDecodeError:
-            self.log.exception("The logging config has a syntax error")
+            self.log.exception("The logging configuration file %s has syntax errors", self.config_file)
+        except PermissionError:
+            self.log.exception("The logging configuration file %s is not accessible", self.config_file)
         except Exception:
             self.log.exception(
                 "Unexpected error while reading logging config file %s",
