@@ -1,15 +1,23 @@
-[tool.poetry]
+[project]
 name = "log_config_watcher"
-version = "0.3.1"
+dynamic = ["version"]
 description = "Watches your logging configuration file for change and applies them without requiring an application restart"
-homepage = "https://github.com/RobertDeRose/log_config_watcher"
-documentation = "https://github.com/RobertDeRose/log_config_watcher/blob/main/README.md"
 readme = "README.md"
-authors = ["Robert DeRose <rderose@checkpt.com>"]
+authors = [
+  { name = "Robert DeRose", email = "rderose@checkpt.com" }
+]
 license = "BSD-3-Clause"
+requires-python = ">=3.5"
 
-[tool.poetry.dependencies]
-python = "^3.5"
+[project.urls]
+repo = "https://github.com/RobertDeRose/log_config_watcher"
+documentation = "https://github.com/RobertDeRose/log_config_watcher/blob/main/README.md"
+
+[project.optional-dependencies]
+pico = ["picologging ; python_version > '3.6'"]
+
+[tool.poetry]
+version = "0.3.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = [

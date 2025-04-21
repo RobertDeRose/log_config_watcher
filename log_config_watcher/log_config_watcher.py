@@ -1,5 +1,10 @@
-import logging
-import logging.config
+try:
+    import picologging as logging
+    import picologging.config as logging_config
+except ImportError:
+    import logging
+    import logging.config as logging_config
+
 from itertools import count
 from json import JSONDecodeError, loads
 from pathlib import Path
@@ -143,7 +148,7 @@ class LogConfigWatcher(Thread):
         try:
             if self._previous_config:
                 self.log.info("Logging configuration change detected")
-            logging.config.dictConfig(new_config)
+            logging_config.dictConfig(new_config)
             if self._previous_config:
                 self.log.info("Applied new logging configuration")
             self._previous_config = new_config
